@@ -2,6 +2,7 @@ package cadence
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -14,40 +15,43 @@ type (
 		RegisterWorkflow(interface{})
 		RegisterActivity(interface{})
 		RegisterWorker()
-		RegisterNamespace(string) error
+		RegisterNamespace(string, RegisterNamespaceOptions) error
 	}
-	registerImpl struct{}
+	registerImpl struct {
+		temporal *Temporal
+	}
 )
 
-func NewRegister() Register {
-	return registerImpl{}
+func NewRegister(temporal *Temporal) Register {
+	return &registerImpl{temporal}
 }
 
 func (r *registerImpl) RegisterWorkflow(w interface{}) {
 	t := reflect.TypeOf(w)
 	for i := 0; i < t.NumMethod(); i++ {
-		Temporal.WorkerClient.RegisterWorkflow(t.Method(i).Func.Interface())
+		fmt.Println(t.Method(i).Name)
+		r.temporal.WorkerClient.RegisterWorkflow(t.Method(i).Func.Interface())
 	}
 }
 
 func (r *registerImpl) RegisterActivity(a interface{}) {
-	t = reflect.TypeOf(a)
+	t := reflect.TypeOf(a)
 	for i := 0; i < t.NumMethod(); i++ {
-		Temporal.WorkerClient.RegisterActivity(t.Method(i).Func.Interface())
+		r.temporal.WorkerClient.RegisterActivity(t.Method(i).Func.Interface())
 	}
 }
 
 func (r *registerImpl) RegisterWorker() {
-	go Temporal.WorkerClient.Run(worker.InterruptCh())
+	go r.temporal.WorkerClient.Run(worker.InterruptCh())
 }
 
-func (r *registerImpl) RegisterNamespace(namespace string, options RegisterOptions) error {
-	r := time.Duration(options.Retention) * time.Hour * 24
-	err := Temporal.NamespaceClient.Register(
+func (r *registerImpl) RegisterNamespace(namespace string, options RegisterNamespaceOptions) error {
+	retention := time.Duration(options.Retention) * time.Hour * 24
+	err := r.temporal.NamespaceClient.Register(
 		context.Background(),
 		&workflowservice.RegisterNamespaceRequest{
 			Namespace:                        namespace,
-			WorkflowExecutionRetentionPeriod: &r,
+			WorkflowExecutionRetentionPeriod: &retention,
 		},
 	)
 	if err != nil && err.Error() != "Namespace already exists." {

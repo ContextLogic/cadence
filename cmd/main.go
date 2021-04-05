@@ -53,11 +53,35 @@ func (w *DummyWorkflow) DummyWorkflowEntry(ctx workflow.Context) (interface{}, e
 }
 
 func main() {
-	dummyw := &DummyWorkflow{}
-	dummya := &DummyActivity{}
-	err := cadence.RegisterNamespace("dummy", cadence.RegisterOptions{Retension: 1})
+	namespace := "dummy"
+	taskQueue := "TASK_QUEUE_dummy"
+
+	client, err := cadence.NewClient(
+		cadence.ClientOptions{
+			HostPort:  "temporal-fe-dev.service.consul:7233",
+			Namespace: namespace,
+		},
+		cadence.WorkerOptions{
+			MaxConcurrentActivityTaskPollers: 1,
+			MaxConcurrentWorkflowTaskPollers: 1,
+		},
+		taskQueue,
+	)
 	if err != nil {
 		panic(err)
 	}
-	cadence.Register(dummyw, dummya)
+
+	err = client.RegisterNamespace(
+		namespace,
+		cadence.RegisterNamespaceOptions{
+			Retention: 1,
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	dummyWorkflow := &DummyWorkflow{}
+	dummyActivity := &DummyActivity{}
+	client.Register(dummyWorkflow, dummyActivity)
 }
