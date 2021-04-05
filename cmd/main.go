@@ -81,7 +81,5 @@ func main() {
 		panic(err)
 	}
 
-	dummyWorkflow := &DummyWorkflow{}
-	dummyActivity := &DummyActivity{}
-	client.Register(dummyWorkflow, dummyActivity)
+	client.Register(&DummyWorkflow{}, &DummyActivity{})
 }
