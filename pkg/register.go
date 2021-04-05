@@ -5,25 +5,45 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/ContextLogic/cadence/pkg/clients"
 	"go.temporal.io/api/workflowservice/v1"
+	"go.temporal.io/sdk/worker"
 )
 
-func Register(w interface{}, a interface{}) {
+type (
+	Register interface {
+		RegisterWorkflow(interface{})
+		RegisterActivity(interface{})
+		RegisterWorker()
+		RegisterNamespace(string) error
+	}
+	registerImpl struct{}
+)
+
+func NewRegister() Register {
+	return registerImpl{}
+}
+
+func (r *registerImpl) RegisterWorkflow(w interface{}) {
 	t := reflect.TypeOf(w)
 	for i := 0; i < t.NumMethod(); i++ {
-		clients.Temporal.WorkerClient.RegisterActivity(t.Method(i).Func.Interface())
-	}
-
-	t = reflect.TypeOf(a)
-	for i := 0; i < t.NumMethod(); i++ {
-		clients.Temporal.WorkerClient.RegisterActivity(t.Method(i).Func.Interface())
+		Temporal.WorkerClient.RegisterWorkflow(t.Method(i).Func.Interface())
 	}
 }
 
-func RegisterNamespace(namespace string) error {
-	r := time.Duration(1) * time.Hour * 24
-	err := clients.Temporal.NamespaceClient.Register(
+func (r *registerImpl) RegisterActivity(a interface{}) {
+	t = reflect.TypeOf(a)
+	for i := 0; i < t.NumMethod(); i++ {
+		Temporal.WorkerClient.RegisterActivity(t.Method(i).Func.Interface())
+	}
+}
+
+func (r *registerImpl) RegisterWorker() {
+	go Temporal.WorkerClient.Run(worker.InterruptCh())
+}
+
+func (r *registerImpl) RegisterNamespace(namespace string, options RegisterOptions) error {
+	r := time.Duration(options.Retention) * time.Hour * 24
+	err := Temporal.NamespaceClient.Register(
 		context.Background(),
 		&workflowservice.RegisterNamespaceRequest{
 			Namespace:                        namespace,

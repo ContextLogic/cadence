@@ -13,4 +13,4 @@ build: build/$(UNAME_S) ## build binaries based on the OS
 build/$(UNAME_S):
 	@echo "$@"
 	@rm -rf bin/*
-	@GOOS=$(UNAME_S) GO111MODULE=on go build -o $(BUILD_DIR)/$(NAME).$(UNAME_S) github.com/ContextLogic/$(NAME)
+	@GOOS=$(UNAME_S) GO111MODULE=on go build -o $(BUILD_DIR)/$(NAME).$(UNAME_S) github.com/ContextLogic/$(NAME)/cmd
