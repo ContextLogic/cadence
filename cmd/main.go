@@ -3,108 +3,100 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	cadence "github.com/ContextLogic/cadence/pkg"
-	"go.temporal.io/sdk/temporal"
-	"go.temporal.io/sdk/workflow"
+	wf "github.com/ContextLogic/cadence/pkg/models/workflow"
+	"github.com/ContextLogic/cadence/pkg/temporal"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/client"
+
+	"github.com/sirupsen/logrus"
 )
 
-const (
-	namespace = "cadence_lib"
-	taskQueue = "TASK_QUEUE_cadence_lib"
-)
+var logger = logrus.New()
 
-var (
-	client cadence.Client
-	dummy  = &DummyWorkflow{&DummyActivity{}}
-)
-
-type (
-	DummyWorkflow struct {
-		Activity *DummyActivity
-	}
-	DummyActivity struct{}
-)
-
-func (w *DummyActivity) DummyActivityCreateOrder(ctx context.Context) (string, error) {
-	fmt.Println("create order")
-	return "ok", nil
+func init() {
+	logger.SetFormatter(&logrus.JSONFormatter{})
 }
 
-func (w *DummyActivity) DummyActivityApprovePayment(ctx context.Context) (string, error) {
-	fmt.Println("approve payment")
-	return "ok", nil
+type Workflow struct {
+	name string
+	json []byte
 }
 
-func (w *DummyWorkflow) DummyWorkflow(ctx workflow.Context) (interface{}, error) {
-	var response string
-	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-		StartToCloseTimeout: time.Minute * time.Duration(1),
-		RetryPolicy: &temporal.RetryPolicy{
-			InitialInterval:    time.Second * time.Duration(1),
-			BackoffCoefficient: 1.0,
-			MaximumInterval:    time.Second * time.Duration(1),
-			MaximumAttempts:    10,
-		},
-	})
+func getWorkflow(path string) Workflow {
+	f, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
 
-	err := workflow.ExecuteActivity(ctx, w.Activity.DummyActivityCreateOrder).Get(ctx, &response)
-	if err != nil {
-		return nil, err
+	value, _ := ioutil.ReadAll(f)
+	return Workflow{
+		name: "example:workflow:ExampleWorkflow",
+		json: value,
 	}
-	fmt.Println(response)
-	err = workflow.ExecuteActivity(ctx, w.Activity.DummyActivityApprovePayment).Get(ctx, &response)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(response)
-	return response, nil
 }
 
 func main() {
+	e := getWorkflow("./cmd/workflow.json")
+	w, err := wf.New(e.json)
+	if err != nil {
+		panic(fmt.Errorf("error loading workflow %w", err))
+	}
+	logger.WithFields(logrus.Fields{"workflow": w}).Info("workflows")
 
-	var err error
-	client, err = cadence.NewClient(
-		cadence.ClientOptions{
-			HostPort:  "temporal-fe-dev.service.consul:7233",
-			Namespace: namespace,
+	activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
+		"example:activity:Activity1": WorkflowActivity1,
+		"example:activity:Activity2": WorkflowActivity2,
+	}
+
+	w.RegisterWorkflow(e.name)
+	w.RegisterActivities(activityMap)
+	w.RegisterWorker()
+	w.RegisterTaskHandlers(activityMap)
+
+	instance, err := temporal.BaseClient.ExecuteWorkflow(
+		context.Background(),
+		client.StartWorkflowOptions{
+			ID:        strings.Join([]string{"cadence_lib", strconv.Itoa(int(time.Now().Unix()))}, "_"),
+			TaskQueue: "TASK_QUEUE_cadence_lib",
 		},
-		cadence.WorkerOptions{
-			MaxConcurrentActivityTaskPollers: 1,
-			MaxConcurrentWorkflowTaskPollers: 1,
+		e.name,
+		map[string]interface{}{
+			"hello": "world",
 		},
-		taskQueue,
 	)
 	if err != nil {
 		panic(err)
 	}
-
-	client.Register(dummy.DummyWorkflow, []interface{}{dummy.Activity.DummyActivityCreateOrder, dummy.Activity.DummyActivityApprovePayment})
-
-	http.HandleFunc("/start", Start)
-	http.ListenAndServe(":8080", nil)
+	response := map[string]interface{}{}
+	err = instance.Get(context.Background(), &response)
+	if err != nil {
+		panic(err)
+	}
 }
 
-func Start(w http.ResponseWriter, req *http.Request) {
-	we, err := client.ExecuteWorkflow(
-		context.Background(),
-		cadence.StartWorkflowOptions{
-			ID:        strings.Join([]string{namespace, strconv.Itoa(int(time.Now().Unix()))}, "_"),
-			TaskQueue: taskQueue,
-		},
-		dummy.DummyWorkflow,
-	)
-	if err != nil {
-		panic(err)
-	}
+func WorkflowActivity1(ctx context.Context, input interface{}) (interface{}, error) {
+	activityInfo := activity.GetInfo(ctx)
+	taskToken := string(activityInfo.TaskToken)
+	activityName := activityInfo.ActivityType.Name
 
-	response := ""
-	err = we.Get(context.Background(), &response)
-	if err != nil {
-		panic(err)
-	}
+	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity executed")
+
+	return input, nil
+}
+
+func WorkflowActivity2(ctx context.Context, input interface{}) (interface{}, error) {
+	activityInfo := activity.GetInfo(ctx)
+	taskToken := string(activityInfo.TaskToken)
+	activityName := activityInfo.ActivityType.Name
+
+	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity executed")
+
+	return input, nil
 }
