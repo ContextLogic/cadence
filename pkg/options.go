@@ -15,8 +15,7 @@ type (
 	// https://github.com/temporalio/sdk-go/blob/master/internal/worker.go#L36
 	WorkerOptions worker.Options
 
-	ActivityOptions          workflow.ActivityOptions
-	RegisterNamespaceOptions struct {
-		Retention int
-	}
+	ActivityOptions workflow.ActivityOptions
+
+	StartWorkflowOptions client.StartWorkflowOptions
 )

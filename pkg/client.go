@@ -1,10 +1,15 @@
 package cadence
 
+import (
+	"context"
+
+	"go.temporal.io/sdk/client"
+)
+
 type (
 	Client interface {
-		Register(interface{}, interface{})
-		RegisterNamespace(string, RegisterNamespaceOptions) error
-		ExecuteWorkflow() error
+		Register(interface{}, []interface{})
+		ExecuteWorkflow(context.Context, StartWorkflowOptions, interface{}, ...interface{}) (client.WorkflowRun, error)
 	}
 	clientImpl struct {
 		register Register
@@ -23,16 +28,12 @@ func NewClient(c ClientOptions, w WorkerOptions, queue string) (Client, error) {
 	}, nil
 }
 
-func (c *clientImpl) Register(w interface{}, a interface{}) {
+func (c *clientImpl) Register(w interface{}, a []interface{}) {
 	c.register.RegisterWorkflow(w)
 	c.register.RegisterActivity(a)
 	c.register.RegisterWorker()
 }
 
-func (c *clientImpl) RegisterNamespace(namespace string, options RegisterNamespaceOptions) error {
-	return c.register.RegisterNamespace(namespace, options)
-}
-
-func (c *clientImpl) ExecuteWorkflow() error {
-	return nil
+func (c *clientImpl) ExecuteWorkflow(ctx context.Context, options StartWorkflowOptions, workflow interface{}, args ...interface{}) (client.WorkflowRun, error) {
+	return c.temporal.BaseClient.ExecuteWorkflow(ctx, client.StartWorkflowOptions(options), workflow)
 }

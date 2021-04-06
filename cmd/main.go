@@ -3,11 +3,24 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	cadence "github.com/ContextLogic/cadence/pkg"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+)
+
+const (
+	namespace = "cadence_lib"
+	taskQueue = "TASK_QUEUE_cadence_lib"
+)
+
+var (
+	client cadence.Client
+	dummy  = &DummyWorkflow{&DummyActivity{}}
 )
 
 type (
@@ -27,7 +40,7 @@ func (w *DummyActivity) DummyActivityApprovePayment(ctx context.Context) (string
 	return "ok", nil
 }
 
-func (w *DummyWorkflow) DummyWorkflowEntry(ctx workflow.Context) (interface{}, error) {
+func (w *DummyWorkflow) DummyWorkflow(ctx workflow.Context) (interface{}, error) {
 	var response string
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * time.Duration(1),
@@ -53,10 +66,9 @@ func (w *DummyWorkflow) DummyWorkflowEntry(ctx workflow.Context) (interface{}, e
 }
 
 func main() {
-	namespace := "dummy"
-	taskQueue := "TASK_QUEUE_dummy"
 
-	client, err := cadence.NewClient(
+	var err error
+	client, err = cadence.NewClient(
 		cadence.ClientOptions{
 			HostPort:  "temporal-fe-dev.service.consul:7233",
 			Namespace: namespace,
@@ -71,15 +83,28 @@ func main() {
 		panic(err)
 	}
 
-	err = client.RegisterNamespace(
-		namespace,
-		cadence.RegisterNamespaceOptions{
-			Retention: 1,
+	client.Register(dummy.DummyWorkflow, []interface{}{dummy.Activity.DummyActivityCreateOrder, dummy.Activity.DummyActivityApprovePayment})
+
+	http.HandleFunc("/start", Start)
+	http.ListenAndServe(":8080", nil)
+}
+
+func Start(w http.ResponseWriter, req *http.Request) {
+	we, err := client.ExecuteWorkflow(
+		context.Background(),
+		cadence.StartWorkflowOptions{
+			ID:        strings.Join([]string{namespace, strconv.Itoa(int(time.Now().Unix()))}, "_"),
+			TaskQueue: taskQueue,
 		},
+		dummy.DummyWorkflow,
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	client.Register(&DummyWorkflow{}, &DummyActivity{})
+	response := ""
+	err = we.Get(context.Background(), &response)
+	if err != nil {
+		panic(err)
+	}
 }

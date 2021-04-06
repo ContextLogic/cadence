@@ -11,37 +11,21 @@ type Temporal struct {
 	BaseClient            client.Client
 	WorkerClient          worker.Worker
 	WorkflowServiceClient workflowservice.WorkflowServiceClient
-	NamespaceClient       client.NamespaceClient
 }
 
 func NewTemporalClient(c ClientOptions, w WorkerOptions, queue string) (t *Temporal, err error) {
 	t = &Temporal{}
-	t.BaseClient, err = client.NewClient(
-		client.Options{
-			HostPort:  c.HostPort,
-			Namespace: c.Namespace,
-		},
-	)
+	t.BaseClient, err = client.NewClient(client.Options(c))
 	if err != nil {
 		return nil, err
 	}
-	t.WorkerClient = worker.New(t.BaseClient, queue, worker.Options{
-		MaxConcurrentActivityTaskPollers: w.MaxConcurrentActivityTaskPollers,
-		MaxConcurrentWorkflowTaskPollers: w.MaxConcurrentActivityTaskPollers,
-	})
+	t.WorkerClient = worker.New(t.BaseClient, queue, worker.Options(w))
 
 	conn, err := grpc.Dial(c.HostPort, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
 	t.WorkflowServiceClient = workflowservice.NewWorkflowServiceClient(conn)
-
-	t.NamespaceClient, err = client.NewNamespaceClient(
-		client.Options{HostPort: c.HostPort},
-	)
-	if err != nil {
-		return nil, err
-	}
 
 	return t, nil
 }
