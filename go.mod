@@ -8,6 +8,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
+	github.com/stretchr/testify v1.6.1
 	go.temporal.io/api v1.4.0
 	go.temporal.io/sdk v1.5.0
 	google.golang.org/grpc v1.36.1
