@@ -10,29 +10,27 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-type (
-	TaskState struct {
-		StateImpl
+type TaskState struct {
+	StateImpl
 
-		InputPath  *jsonpath.Path `json:",omitempty"`
-		OutputPath *jsonpath.Path `json:",omitempty"`
-		ResultPath *jsonpath.Path `json:",omitempty"`
-		Parameters interface{}    `json:",omitempty"`
+	InputPath  *jsonpath.Path `json:",omitempty"`
+	OutputPath *jsonpath.Path `json:",omitempty"`
+	ResultPath *jsonpath.Path `json:",omitempty"`
+	Parameters interface{}    `json:",omitempty"`
 
-		Resource *string `json:",omitempty"`
+	Resource *string `json:",omitempty"`
 
-		Catch []*models.Catcher `json:",omitempty"`
-		Retry []*models.Retrier `json:",omitempty"`
+	Catch []*models.Catcher `json:",omitempty"`
+	Retry []*models.Retrier `json:",omitempty"`
 
-		Next *string `json:",omitempty"`
-		End  *bool   `json:",omitempty"`
+	Next *string `json:",omitempty"`
+	End  *bool   `json:",omitempty"`
 
-		TimeoutSeconds   int `json:",omitempty"`
-		HeartbeatSeconds int `json:",omitempty"`
+	TimeoutSeconds   int `json:",omitempty"`
+	HeartbeatSeconds int `json:",omitempty"`
 
-		Handler models.TaskHandler `json:"-"`
-	}
-)
+	Handler models.TaskHandler `json:"-"`
+}
 
 func NewTaskState(name string, data []byte) (*TaskState, error) {
 	t := &TaskState{}
@@ -44,21 +42,19 @@ func NewTaskState(name string, data []byte) (*TaskState, error) {
 	return t, nil
 }
 
-func (s *TaskState) process(ctx workflow.Context, input interface{}) (interface{}, *string, error) {
-	if s.Handler != nil {
-		result, err := s.Handler(ctx, *s.Resource, input)
-		if err != nil {
-			return nil, nil, err
-		}
-		return result, s.NextState(s.Next, s.End), nil
-	}
-
-	return nil, nil, errs.ErrTaskHandlerNotRegistered
-}
-
 // Input must include the Task name in $.Task
 func (s *TaskState) Execute(ctx workflow.Context, input interface{}) (output interface{}, next *string, err error) {
-	f := ProcessResult(s.ResultPath, s.process)
+	f := ProcessResult(s.ResultPath, func(ctx workflow.Context, input interface{}) (interface{}, *string, error) {
+		if s.Handler != nil {
+			result, err := s.Handler(ctx, *s.Resource, input)
+			if err != nil {
+				return nil, nil, err
+			}
+			return result, s.NextState(s.Next, s.End), nil
+		}
+
+		return nil, nil, errs.ErrTaskHandlerNotRegistered
+	})
 	f = ProcessParams(s.Parameters, f)
 	f = ProcessInputOutput(s.InputPath, s.OutputPath, f)
 	f = ProcessRetrier(s.GetName(), s.Retry, f)
