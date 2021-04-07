@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	wf "github.com/ContextLogic/cadence/pkg/models/workflow"
+	wf "github.com/ContextLogic/cadence/pkg/fsm/workflow"
 	"github.com/ContextLogic/cadence/pkg/temporal"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
