@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 
-	wf "github.com/ContextLogic/cadence/pkg/models/workflow"
+	wf "github.com/ContextLogic/cadence/pkg/fsm/workflow"
 	"github.com/ContextLogic/cadence/pkg/temporal"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/testsuite"

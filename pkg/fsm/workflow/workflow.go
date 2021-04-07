@@ -30,18 +30,13 @@ func New(raw []byte) (*Workflow, error) {
 	}
 
 	for _, state := range w.States {
-<<<<<<< HEAD:pkg/fsm/workflow/workflow.go
-		task, ok := state.(*s.TaskState)
-		if !ok {
-=======
 		stateType := *state.GetType()
 		switch stateType {
 		case "Succeed":
 		case "Fail":
->>>>>>> 77dabf4 (add success and fail state):pkg/models/workflow/workflow.go
 			continue
 		case "Task":
-			task, ok := state.(*states.TaskState)
+			task, ok := state.(*s.TaskState)
 			if !ok {
 				continue
 			}
