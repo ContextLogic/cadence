@@ -34,11 +34,20 @@ func New(raw []byte) (*Workflow, error) {
 	}
 
 	for _, state := range w.States {
-		task, ok := state.(*states.TaskState)
-		if !ok {
+		stateType := *state.GetType()
+		switch stateType {
+		case "Succeed":
+		case "Fail":
 			continue
+		case "Task":
+			task, ok := state.(*states.TaskState)
+			if !ok {
+				continue
+			}
+			w.TaskStates = append(w.TaskStates, task)
+		default:
+			err = fmt.Errorf("unknown state %q", stateType)
 		}
-		w.TaskStates = append(w.TaskStates, task)
 	}
 
 	return &w, nil
@@ -78,6 +87,17 @@ func (wf *Workflow) RegisterActivities(activities ActivityMap) {
 			continue
 		}
 		temporal.WorkerClient.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
+	}
+	for _, state := range wf.States {
+		stateType := *state.GetType()
+		switch stateType {
+		case "Succeed":
+		case "Fail":
+		case "Task":
+			continue
+		default:
+			println(fmt.Errorf("unknown state %q", stateType))
+		}
 	}
 }
 

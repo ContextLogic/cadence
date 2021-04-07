@@ -21,7 +21,9 @@ const (
 	StatesBranchFailed           = "States.BranchFailed"
 	StatesNoChoiceMatched        = "States.NoChoiceMatched"
 
-	Task StateType = "Task"
+	Task    StateType = "Task"
+	Succeed StateType = "Succeed"
+	Fail    StateType = "Fail"
 )
 
 type (
@@ -81,6 +83,18 @@ func (s *States) UnmarshalJSON(b []byte) error {
 		switch *si.Type {
 		case "Task":
 			state, err := NewTaskState(name, *r)
+			if err != nil {
+				return err
+			}
+			(*states)[*state.GetName()] = state
+		case "Succeed":
+			state, err := NewSucceedState(name, *r)
+			if err != nil {
+				return err
+			}
+			(*states)[*state.GetName()] = state
+		case "Fail":
+			state, err := NewFailState(name, *r)
 			if err != nil {
 				return err
 			}
