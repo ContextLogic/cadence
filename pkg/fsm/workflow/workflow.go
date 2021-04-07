@@ -32,10 +32,10 @@ func New(raw []byte) (*Workflow, error) {
 	for _, state := range w.States {
 		stateType := *state.GetType()
 		switch stateType {
-		case "Succeed":
-		case "Fail":
+		case models.Succeed:
+		case models.Fail:
 			continue
-		case "Task":
+		case models.Task:
 			task, ok := state.(*s.TaskState)
 			if !ok {
 				continue
@@ -110,9 +110,9 @@ func (wf *Workflow) RegisterActivities(activities models.ActivityMap) {
 	for _, state := range wf.States {
 		stateType := *state.GetType()
 		switch stateType {
-		case "Succeed":
-		case "Fail":
-		case "Task":
+		case models.Succeed:
+		case models.Fail:
+		case models.Task:
 			continue
 		default:
 			println(fmt.Errorf("unknown state %q", stateType))
