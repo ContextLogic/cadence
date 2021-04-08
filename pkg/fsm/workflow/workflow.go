@@ -88,17 +88,6 @@ func (wf *Workflow) RegisterActivities(activities models.ActivityMap) {
 		}
 		temporal.WorkerClient.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
 	}
-	for _, state := range wf.States {
-		stateType := *state.GetType()
-		switch stateType {
-		case models.Succeed:
-		case models.Fail:
-		case models.Task:
-			continue
-		default:
-			println(fmt.Errorf("unknown state %q", stateType))
-		}
-	}
 }
 
 func (wf *Workflow) RegisterWorker() {
