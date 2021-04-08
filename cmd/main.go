@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	wf "github.com/ContextLogic/cadence/pkg/fsm/workflow"
+	"github.com/ContextLogic/cadence/pkg/fsm/workflow"
 	"github.com/ContextLogic/cadence/pkg/temporal"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
@@ -28,7 +29,7 @@ type Workflow struct {
 	json []byte
 }
 
-func getWorkflow(path string) Workflow {
+func getWorkflows(path string) []*Workflow {
 	f, err := os.Open(path)
 	if err != nil {
 		panic(err)
@@ -36,52 +37,66 @@ func getWorkflow(path string) Workflow {
 	defer f.Close()
 
 	value, _ := ioutil.ReadAll(f)
-	return Workflow{
-		name: "example:workflow:ExampleWorkflow",
-		json: value,
+	m := map[string]interface{}{}
+	if err := json.Unmarshal(value, &m); err != nil {
+		panic(err)
 	}
+	workflows := []*Workflow{}
+	for k, v := range m {
+		bytes, err := json.Marshal(v)
+		if err != nil {
+			panic(err)
+		}
+		workflows = append(workflows, &Workflow{
+			name: k,
+			json: bytes,
+		})
+	}
+	return workflows
 }
 
 func main() {
-	e := getWorkflow("./cmd/workflow.json")
-	w, err := wf.New(e.json)
-	if err != nil {
-		panic(fmt.Errorf("error loading workflow %w", err))
-	}
-	logger.WithFields(logrus.Fields{"workflow": w}).Info("workflows")
+	wfs := getWorkflows("./cmd/workflows.json")
+	for _, wf := range wfs {
+		w, err := workflow.New(wf.json)
+		if err != nil {
+			panic(fmt.Errorf("error loading workflow %w", err))
+		}
+		logger.WithFields(logrus.Fields{"workflow": w}).Info("workflows")
 
-	activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
-		"example:activity:Activity1": WorkflowActivity1,
-		"example:activity:Activity2": WorkflowActivity2,
-	}
+		activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
+			"example:activity:Activity1": Activity1,
+			"example:activity:Activity2": Activity2,
+		}
 
-	w.RegisterWorkflow(e.name)
-	w.RegisterActivities(activityMap)
-	w.RegisterWorker()
-	w.RegisterTaskHandlers(activityMap)
+		w.RegisterWorkflow(wf.name)
+		w.RegisterActivities(activityMap)
+		w.RegisterWorker()
+		w.RegisterTaskHandlers(activityMap)
 
-	instance, err := temporal.BaseClient.ExecuteWorkflow(
-		context.Background(),
-		client.StartWorkflowOptions{
-			ID:        strings.Join([]string{"cadence_lib", strconv.Itoa(int(time.Now().Unix()))}, "_"),
-			TaskQueue: "TASK_QUEUE_cadence_lib",
-		},
-		e.name,
-		map[string]interface{}{
-			"hello": "world",
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-	response := map[string]interface{}{}
-	err = instance.Get(context.Background(), &response)
-	if err != nil {
-		panic(err)
+		instance, err := temporal.BaseClient.ExecuteWorkflow(
+			context.Background(),
+			client.StartWorkflowOptions{
+				ID:        strings.Join([]string{"cadence_lib", strconv.Itoa(int(time.Now().Unix()))}, "_"),
+				TaskQueue: "TASK_QUEUE_cadence_lib",
+			},
+			wf.name,
+			map[string]interface{}{
+				"hello": "world",
+			},
+		)
+		if err != nil {
+			panic(err)
+		}
+		response := map[string]interface{}{}
+		err = instance.Get(context.Background(), &response)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
-func WorkflowActivity1(ctx context.Context, input interface{}) (interface{}, error) {
+func Activity1(ctx context.Context, input interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
@@ -91,7 +106,7 @@ func WorkflowActivity1(ctx context.Context, input interface{}) (interface{}, err
 	return input, nil
 }
 
-func WorkflowActivity2(ctx context.Context, input interface{}) (interface{}, error) {
+func Activity2(ctx context.Context, input interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name

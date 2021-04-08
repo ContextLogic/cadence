@@ -13,13 +13,16 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+var RegisteredActivities = make(map[string]*struct{})
+
 type Workflow struct {
-	States         s.States       `json:"States"`
-	TaskStates     []*s.TaskState `json:"-"`
-	StartAt        string         `json:"StartAt"`
-	Comment        string         `json:"Comment"`
-	Version        string         `json:"Version"`
-	TimeoutSeconds int32          `json:"TimeoutSeconds"`
+	States         s.States `json:"States"`
+	StartAt        string   `json:"StartAt"`
+	Comment        string   `json:"Comment"`
+	Version        string   `json:"Version"`
+	TimeoutSeconds int32    `json:"TimeoutSeconds"`
+
+	TaskStates []*s.TaskState `json:"-"`
 }
 
 func New(raw []byte) (*Workflow, error) {
@@ -86,6 +89,10 @@ func (wf *Workflow) RegisterActivities(activities models.ActivityMap) {
 		if !ok {
 			continue
 		}
+		if _, ok := RegisteredActivities[*task.Resource]; ok {
+			continue
+		}
+		RegisteredActivities[*task.Resource] = nil
 		temporal.WorkerClient.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
 	}
 }

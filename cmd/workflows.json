@@ -1,0 +1,33 @@
+{
+    "example:workflow:ExampleWorkflow1":{
+        "StartAt": "State1",
+        "States": {
+            "State1": {
+                "Type": "Task",
+                "Resource": "example:activity:Activity1",
+                "Next": "State2"
+            },
+            "State2": {
+                "Type": "Task",
+                "Resource": "example:activity:Activity2",
+                "End": true
+            }
+        }
+    },
+    "example:workflow:ExampleWorkflow2":{
+        "StartAt": "State1",
+        "States": {
+            "State1": {
+                "Type": "Task",
+                "Resource": "example:activity:Activity1",
+                "Next": "State2"
+            },
+            "State2": {
+                "Type": "Task",
+                "Resource": "example:activity:Activity2",
+                "End": true
+            }
+        }
+    }
+}
+
