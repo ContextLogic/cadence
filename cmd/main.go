@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -24,12 +23,7 @@ func init() {
 	logger.SetFormatter(&logrus.JSONFormatter{})
 }
 
-type Workflow struct {
-	name string
-	json []byte
-}
-
-func getWorkflows(path string) []*Workflow {
+func LoadWorkflows(path string) []*workflow.Workflow {
 	f, err := os.Open(path)
 	if err != nil {
 		panic(err)
@@ -37,42 +31,39 @@ func getWorkflows(path string) []*Workflow {
 	defer f.Close()
 
 	value, _ := ioutil.ReadAll(f)
-	m := map[string]interface{}{}
+	m := []map[string]interface{}{}
 	if err := json.Unmarshal(value, &m); err != nil {
 		panic(err)
 	}
-	workflows := []*Workflow{}
-	for k, v := range m {
+
+	workflows := []*workflow.Workflow{}
+	for _, v := range m {
 		bytes, err := json.Marshal(v)
 		if err != nil {
 			panic(err)
 		}
-		workflows = append(workflows, &Workflow{
-			name: k,
-			json: bytes,
-		})
+		w, err := workflow.New(bytes)
+		if err != nil {
+			panic(err)
+		}
+		logger.WithFields(logrus.Fields{"workflow": w}).Info("workflows")
+		workflows = append(workflows, w)
 	}
 	return workflows
 }
 
 func main() {
-	wfs := getWorkflows("./cmd/workflows.json")
+	wfs := LoadWorkflows("./cmd/workflows.json")
 	for _, wf := range wfs {
-		w, err := workflow.New(wf.json)
-		if err != nil {
-			panic(fmt.Errorf("error loading workflow %w", err))
-		}
-		logger.WithFields(logrus.Fields{"workflow": w}).Info("workflows")
-
 		activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
 			"example:activity:Activity1": Activity1,
 			"example:activity:Activity2": Activity2,
 		}
 
-		w.RegisterWorkflow(wf.name)
-		w.RegisterActivities(activityMap)
-		w.RegisterWorker()
-		w.RegisterTaskHandlers(activityMap)
+		wf.RegisterWorkflow(wf.Name)
+		wf.RegisterActivities(activityMap)
+		wf.RegisterWorker()
+		wf.RegisterTaskHandlers(activityMap)
 
 		instance, err := temporal.BaseClient.ExecuteWorkflow(
 			context.Background(),
@@ -80,7 +71,7 @@ func main() {
 				ID:        strings.Join([]string{"cadence_lib", strconv.Itoa(int(time.Now().Unix()))}, "_"),
 				TaskQueue: "TASK_QUEUE_cadence_lib",
 			},
-			wf.name,
+			wf.Name,
 			map[string]interface{}{
 				"foo": 3,
 			},
