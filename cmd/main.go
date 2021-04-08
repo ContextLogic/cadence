@@ -82,7 +82,7 @@ func main() {
 			},
 			wf.name,
 			map[string]interface{}{
-				"foo": 1,
+				"foo": 3,
 			},
 		)
 		if err != nil {

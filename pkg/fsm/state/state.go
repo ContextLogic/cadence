@@ -73,6 +73,18 @@ func (s *States) UnmarshalJSON(b []byte) error {
 				return err
 			}
 			(*states)[*state.GetName()] = state
+		case models.Wait:
+			state, err := NewWaitState(name, *r)
+			if err != nil {
+				return err
+			}
+			(*states)[*state.GetName()] = state
+		case models.Pass:
+			state, err := NewPassState(name, *r)
+			if err != nil {
+				return err
+			}
+			(*states)[*state.GetName()] = state
 		default:
 			return fmt.Errorf("unknown state %q", *si.Type)
 		}

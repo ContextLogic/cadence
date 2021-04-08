@@ -18,10 +18,13 @@ const (
 )
 
 const (
-	Task    StateType = "Task"
-	Fail    StateType = "Fail"
-	Succeed StateType = "Succeed"
-	Choice  StateType = "Choice"
+	Task     StateType = "Task"
+	Fail     StateType = "Fail"
+	Succeed  StateType = "Succeed"
+	Choice   StateType = "Choice"
+	Wait     StateType = "Wait"
+	Pass     StateType = "Pass"
+	Parallel StateType = "Parallel"
 )
 
 type (

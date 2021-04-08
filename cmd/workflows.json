@@ -29,6 +29,11 @@
                 "Variable": "$.foo",
                 "NumericEquals": 2,
                 "Next": "State2"
+              },
+              {
+                "Variable": "$.foo",
+                "NumericEquals": 3,
+                "Next": "Pass_append"
               }
             ],
             "Default": "DefaultState"
@@ -41,6 +46,19 @@
           "State2": {
             "Type": "Task",
             "Resource": "example:activity:Activity2",
+            "Next": "SuccessState"
+          },
+          "Pass_append": {
+            "Type": "Pass",
+            "Result": {
+              "PassAppend": "dummy pass append"
+            },
+            "ResultPath": "$.PassAppend",
+            "Next": "Wait_ten_seconds"
+          },
+          "Wait_ten_seconds" : {
+            "Type" : "Wait",
+            "Seconds" : 2,
             "Next": "SuccessState"
           },
           "FailState": {
