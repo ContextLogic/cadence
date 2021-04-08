@@ -36,34 +36,32 @@ type (
 )
 
 func (s *States) UnmarshalJSON(b []byte) error {
-	var raw map[string]*json.RawMessage
-	err := json.Unmarshal(b, &raw)
-
-	if err != nil {
+	raw := map[string]*json.RawMessage{}
+	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
 
 	states := &States{}
 	for name, r := range raw {
 		si := &StateImpl{}
-		if err = json.Unmarshal(*r, si); err != nil {
+		if err := json.Unmarshal(*r, si); err != nil {
 			return err
 		}
 
 		switch *si.Type {
-		case "Task":
+		case models.Task:
 			state, err := NewTaskState(name, *r)
 			if err != nil {
 				return err
 			}
 			(*states)[*state.GetName()] = state
-		case "Succeed":
+		case models.Succeed:
 			state, err := NewSucceedState(name, *r)
 			if err != nil {
 				return err
 			}
 			(*states)[*state.GetName()] = state
-		case "Fail":
+		case models.Fail:
 			state, err := NewFailState(name, *r)
 			if err != nil {
 				return err
