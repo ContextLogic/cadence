@@ -26,12 +26,11 @@ func NewSucceedState(name string, data []byte) (*SucceedState, error) {
 	return t, nil
 }
 
-func (s *SucceedState) process(ctx workflow.Context, input interface{}) (interface{}, *string, error) {
-	return input, nil, nil
-}
-
 func (s *SucceedState) Execute(ctx workflow.Context, input interface{}) (output interface{}, next *string, err error) {
-	f := ProcessInputOutput(s.InputPath, s.OutputPath, s.process)
+	f := func(ctx workflow.Context, input interface{}) (interface{}, *string, error) {
+		return input, nil, nil
+	}
+	f = ProcessInputOutput(s.InputPath, s.OutputPath, f)
 	return ProcessError(s, f)(ctx, input)
 }
 

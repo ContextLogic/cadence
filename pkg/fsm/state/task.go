@@ -44,7 +44,7 @@ func NewTaskState(name string, data []byte) (*TaskState, error) {
 
 // Input must include the Task name in $.Task
 func (s *TaskState) Execute(ctx workflow.Context, input interface{}) (output interface{}, next *string, err error) {
-	f := ProcessResult(s.ResultPath, func(ctx workflow.Context, input interface{}) (interface{}, *string, error) {
+	f := func(ctx workflow.Context, input interface{}) (interface{}, *string, error) {
 		if s.Handler != nil {
 			result, err := s.Handler(ctx, *s.Resource, input)
 			if err != nil {
@@ -54,7 +54,8 @@ func (s *TaskState) Execute(ctx workflow.Context, input interface{}) (output int
 		}
 
 		return nil, nil, errs.ErrTaskHandlerNotRegistered
-	})
+	}
+	f = ProcessResult(s.ResultPath, f)
 	f = ProcessParams(s.Parameters, f)
 	f = ProcessInputOutput(s.InputPath, s.OutputPath, f)
 	f = ProcessRetrier(s.GetName(), s.Retry, f)
