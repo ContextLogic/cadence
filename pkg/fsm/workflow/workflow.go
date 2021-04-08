@@ -16,6 +16,7 @@ import (
 var RegisteredActivities = make(map[string]*struct{})
 
 type Workflow struct {
+	Name           string   `json:"Name"`
 	States         s.States `json:"States"`
 	StartAt        string   `json:"StartAt"`
 	Comment        string   `json:"Comment"`

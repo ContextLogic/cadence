@@ -1,5 +1,6 @@
-{
-    "example:workflow:ExampleWorkflow1":{
+[
+    {
+        "Name": "example:workflow:ExampleWorkflow1",
         "StartAt": "State1",
         "States": {
             "State1": {
@@ -14,7 +15,8 @@
             }
         }
     },
-    "example:workflow:ExampleWorkflow2":{
+    {
+        "Name": "example:workflow:ExampleWorkflow2",
         "StartAt": "ChoiceState",
         "States": {
           "ChoiceState": {
@@ -70,5 +72,4 @@
           }
         }
     }
-}
-
+]
