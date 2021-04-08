@@ -1,4 +1,3 @@
-# directory for built binaries
 BUILD_DIR = bin
 
 UNAME_S := $(shell uname -s | tr A-Z a-z)
