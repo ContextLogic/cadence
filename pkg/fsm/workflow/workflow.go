@@ -74,15 +74,7 @@ func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{
 
 func (wf *Workflow) RegisterWorkflow(name string) {
 	f := func(ctx workflow.Context, input interface{}) (interface{}, error) {
-		w := &Workflow{}
-		if err := workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
-			return wf
-		}).Get(w); err != nil {
-			return nil, fmt.Errorf("failed to initialize the workflow: %w", err)
-		}
-		// TODO: verify the necessity of calling SideEffect
-		w.States = wf.States
-		return w.Execute(
+		return wf.Execute(
 			workflow.WithActivityOptions(
 				ctx,
 				workflow.ActivityOptions{
