@@ -68,7 +68,7 @@ func main() {
 		},
 		e.name,
 		map[string]interface{}{
-			"hello": "world",
+			"foo": 1,
 		},
 	)
 	if err != nil {
@@ -86,7 +86,7 @@ func WorkflowActivity1(ctx context.Context, input interface{}) (interface{}, err
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
 
-	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity executed")
+	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity1 executed")
 
 	return input, nil
 }
@@ -96,7 +96,7 @@ func WorkflowActivity2(ctx context.Context, input interface{}) (interface{}, err
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
 
-	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity executed")
+	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity2 executed")
 
 	return input, nil
 }

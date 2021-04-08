@@ -51,20 +51,26 @@ func (s *States) UnmarshalJSON(b []byte) error {
 		}
 
 		switch *si.Type {
-		case "Task":
+		case models.Task:
 			state, err := NewTaskState(name, *r)
 			if err != nil {
 				return err
 			}
 			(*states)[*state.GetName()] = state
-		case "Succeed":
+		case models.Succeed:
 			state, err := NewSucceedState(name, *r)
 			if err != nil {
 				return err
 			}
 			(*states)[*state.GetName()] = state
-		case "Fail":
+		case models.Fail:
 			state, err := NewFailState(name, *r)
+			if err != nil {
+				return err
+			}
+			(*states)[*state.GetName()] = state
+		case models.Choice:
+			state, err := NewChoiceState(name, *r)
 			if err != nil {
 				return err
 			}

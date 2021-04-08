@@ -34,6 +34,7 @@ func New(raw []byte) (*Workflow, error) {
 		switch stateType {
 		case models.Succeed:
 		case models.Fail:
+		case models.Choice:
 			continue
 		case models.Task:
 			task, ok := state.(*s.TaskState)
