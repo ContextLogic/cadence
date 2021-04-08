@@ -20,7 +20,7 @@ const (
 const (
 	Task    StateType = "Task"
 	Fail    StateType = "Fail"
-	Succeed StateType = "Suceed"
+	Succeed StateType = "Succeed"
 )
 
 type (
