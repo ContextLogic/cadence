@@ -14,7 +14,7 @@ import (
 )
 
 type Workflow struct {
-	States         s.States       `json:"States"`
+	States         *s.States      `json:"States"`
 	TaskStates     []*s.TaskState `json:"-"`
 	StartAt        string         `json:"StartAt"`
 	Comment        string         `json:"Comment"`
@@ -29,7 +29,7 @@ func New(raw []byte) (*Workflow, error) {
 		return nil, err
 	}
 
-	for _, state := range w.States {
+	for _, state := range *w.States {
 		stateType := *state.GetType()
 		switch stateType {
 		case models.Succeed:
@@ -53,7 +53,7 @@ func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{
 	n := &wf.StartAt
 
 	for {
-		s, ok := wf.States[*n]
+		s, ok := (*wf.States)[*n]
 		if !ok {
 			return nil, fmt.Errorf("next state invalid (%v)", *n)
 		}
@@ -74,17 +74,15 @@ func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{
 
 func (wf *Workflow) RegisterWorkflow(name string) {
 	f := func(ctx workflow.Context, input interface{}) (interface{}, error) {
-		flow := workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
-			return *wf
-		})
-
-		var w Workflow
-		err := flow.Get(&w)
-		if err != nil {
+		w := &Workflow{}
+		if err := workflow.SideEffect(ctx, func(ctx workflow.Context) interface{} {
+			return wf
+		}).Get(w); err != nil {
 			return nil, fmt.Errorf("failed to initialize the workflow: %w", err)
 		}
-
-		return wf.Execute(
+		// TODO: verify the necessity of calling SideEffect
+		w.States = wf.States
+		return w.Execute(
 			workflow.WithActivityOptions(
 				ctx,
 				workflow.ActivityOptions{
@@ -107,7 +105,7 @@ func (wf *Workflow) RegisterActivities(activities models.ActivityMap) {
 		}
 		temporal.WorkerClient.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
 	}
-	for _, state := range wf.States {
+	for _, state := range *wf.States {
 		stateType := *state.GetType()
 		switch stateType {
 		case models.Succeed:
