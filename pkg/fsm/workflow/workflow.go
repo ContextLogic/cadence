@@ -14,7 +14,7 @@ import (
 )
 
 type Workflow struct {
-	States         *s.States      `json:"States"`
+	States         s.States       `json:"States"`
 	TaskStates     []*s.TaskState `json:"-"`
 	StartAt        string         `json:"StartAt"`
 	Comment        string         `json:"Comment"`
@@ -30,7 +30,7 @@ func New(raw []byte) (*Workflow, error) {
 	}
 
 	for _, state := range w.States {
-		task, ok := state.(*states.TaskState)
+		task, ok := state.(*s.TaskState)
 		if !ok {
 			continue
 		}
@@ -44,7 +44,7 @@ func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{
 	n := &wf.StartAt
 
 	for {
-		s, ok := (*wf.States)[*n]
+		s, ok := wf.States[*n]
 		if !ok {
 			return nil, fmt.Errorf("next state invalid (%v)", *n)
 		}
@@ -88,7 +88,7 @@ func (wf *Workflow) RegisterActivities(activities models.ActivityMap) {
 		}
 		temporal.WorkerClient.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
 	}
-	for _, state := range *wf.States {
+	for _, state := range wf.States {
 		stateType := *state.GetType()
 		switch stateType {
 		case models.Succeed:
