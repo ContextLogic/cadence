@@ -112,13 +112,21 @@ func RunDSLBasedWorkflows() {
 				TaskQueue: strings.Join([]string{taskqueue_prefix, "dsl"}, "_"),
 			},
 			wf.Name,
-			map[string]interface{}{"foo": 3},
+			map[string]interface{}{
+				"foo": 4,
+			},
 		)
 		if err != nil {
 			panic(err)
 		}
-		response := map[string]interface{}{}
-		err = instance.Get(context.Background(), &response)
+
+		if idx == 0 {
+			response := map[string]interface{}{}
+			err = instance.Get(context.Background(), &response)
+		} else {
+			response := []map[string]interface{}{}
+			err = instance.Get(context.Background(), &response)
+		}
 		if err != nil {
 			panic(err)
 		}

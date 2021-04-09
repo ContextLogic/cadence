@@ -55,6 +55,12 @@ func (s *States) UnmarshalJSON(b []byte) error {
 				return err
 			}
 			(*states)[*state.GetName()] = state
+		case models.Parallel:
+			state, err := NewParallelState(name, *r)
+			if err != nil {
+				return err
+			}
+			(*states)[*state.GetName()] = state
 		case models.Succeed:
 			state, err := NewSucceedState(name, *r)
 			if err != nil {
@@ -412,4 +418,27 @@ func isErrorEqualsValid(errorEquals []*string, last bool) error {
 	}
 
 	return nil
+}
+
+func TasksFromStates(states States) []*TaskState {
+	var tasks []*TaskState
+	for _, state := range states {
+		switch state.(type) {
+		case *TaskState:
+			task, ok := state.(*TaskState)
+			if !ok {
+				continue
+			}
+			tasks = append(tasks, task)
+		case *ParallelState:
+			parallelState, ok := state.(*ParallelState)
+			if !ok {
+				continue
+			}
+			for _, branch := range parallelState.Branches {
+				tasks = append(tasks, branch.Tasks()...)
+			}
+		}
+	}
+	return tasks
 }
