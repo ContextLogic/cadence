@@ -33,7 +33,7 @@ func New(raw []byte) (*Workflow, error) {
 
 	var tasks = s.TasksFromStates(w.States)
 	w.TaskStates = append(w.TaskStates, tasks...)
-	return &w, nil
+	return w, nil
 }
 
 func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{}, error) {

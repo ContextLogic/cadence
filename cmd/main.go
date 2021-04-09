@@ -98,7 +98,7 @@ func RunDSLBasedWorkflows() {
 		panic(err)
 	}
 	wfs := LoadWorkflows("./cmd/dsl_based/workflows.json")
-	for _, wf := range wfs {
+	for idx, wf := range wfs {
 		activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
 			"example:activity:Activity1": Activity1,
 			"example:activity:Activity2": Activity2,
