@@ -2,19 +2,21 @@ package client
 
 import (
 	"context"
-	"errors"
 
 	"github.com/ContextLogic/cadence/pkg/fsm/workflow"
 	"github.com/ContextLogic/cadence/pkg/models"
 	"github.com/ContextLogic/cadence/pkg/options"
 	"github.com/ContextLogic/cadence/pkg/temporal"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
+	sdk "go.temporal.io/sdk/workflow"
 )
 
 type (
 	Client interface {
-		Register(*workflow.Workflow, models.ActivityMap)
-		ExecuteWorkflow(context.Context, client.StartWorkflowOptions, interface{}, ...interface{}) (client.WorkflowRun, error)
+		RegisterDSLBased(*workflow.Workflow, models.ActivityMap)
+		RegisterCodeBased(string, interface{}, []interface{})
+		ExecuteWorkflow(context.Context, client.StartWorkflowOptions, interface{}, interface{}) (client.WorkflowRun, error)
 	}
 	clientImpl struct {
 		temporal *temporal.Temporal
@@ -31,16 +33,21 @@ func New(options options.Options) (Client, error) {
 	}, nil
 }
 
-func (c *clientImpl) Register(w *workflow.Workflow, activities models.ActivityMap) {
+func (c *clientImpl) RegisterDSLBased(w *workflow.Workflow, activities models.ActivityMap) {
 	w.RegisterWorkflow(c.temporal.WorkerClient)
 	w.RegisterActivities(activities, c.temporal.WorkerClient)
 	w.RegisterWorker(c.temporal.WorkerClient)
 	w.RegisterTaskHandlers(activities)
 }
 
-func (c *clientImpl) ExecuteWorkflow(ctx context.Context, options client.StartWorkflowOptions, workflow interface{}, args ...interface{}) (client.WorkflowRun, error) {
-	if len(args) != 1 {
-		return nil, errors.New("wrong number of workflow params")
+func (c *clientImpl) RegisterCodeBased(name string, w interface{}, activities []interface{}) {
+	c.temporal.WorkerClient.RegisterWorkflowWithOptions(w, sdk.RegisterOptions{Name: name})
+	for _, a := range activities {
+		c.temporal.WorkerClient.RegisterActivity(a)
 	}
-	return c.temporal.BaseClient.ExecuteWorkflow(ctx, options, workflow, args[0])
+	go c.temporal.WorkerClient.Run(worker.InterruptCh())
+}
+
+func (c *clientImpl) ExecuteWorkflow(ctx context.Context, options client.StartWorkflowOptions, workflow interface{}, input interface{}) (client.WorkflowRun, error) {
+	return c.temporal.BaseClient.ExecuteWorkflow(ctx, options, workflow, input)
 }
