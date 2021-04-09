@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
+	client "github.com/ContextLogic/cadence/pkg"
 	"github.com/ContextLogic/cadence/pkg/fsm/workflow"
-	"github.com/ContextLogic/cadence/pkg/temporal"
-	"go.temporal.io/sdk/activity"
-	"go.temporal.io/sdk/client"
-
+	"github.com/ContextLogic/cadence/pkg/options"
 	"github.com/sirupsen/logrus"
+	"go.temporal.io/sdk/activity"
+	sdk "go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
 )
 
 var logger = logrus.New()
@@ -54,20 +55,28 @@ func LoadWorkflows(path string) []*workflow.Workflow {
 
 func main() {
 	wfs := LoadWorkflows("./cmd/workflows.json")
+	c, err := client.New(options.Options{
+		ClientOptions: sdk.Options{
+			HostPort:  "temporal-fe-dev.service.consul:7233",
+			Namespace: "cadence_lib",
+		},
+		WorkerOptions: worker.Options{}, // use temporal's default value
+		TaskQueue:     "TASK_QUEUE_cadence_lib",
+	})
+	if err != nil {
+		panic(err)
+	}
+
 	for _, wf := range wfs {
 		activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
 			"example:activity:Activity1": Activity1,
 			"example:activity:Activity2": Activity2,
 		}
 
-		wf.RegisterWorkflow(wf.Name)
-		wf.RegisterActivities(activityMap)
-		wf.RegisterWorker()
-		wf.RegisterTaskHandlers(activityMap)
-
-		instance, err := temporal.BaseClient.ExecuteWorkflow(
+		c.Register(wf, activityMap)
+		instance, err := c.ExecuteWorkflow(
 			context.Background(),
-			client.StartWorkflowOptions{
+			sdk.StartWorkflowOptions{
 				ID:        strings.Join([]string{"cadence_lib", strconv.Itoa(int(time.Now().Unix()))}, "_"),
 				TaskQueue: "TASK_QUEUE_cadence_lib",
 			},

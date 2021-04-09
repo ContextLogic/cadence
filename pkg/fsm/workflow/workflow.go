@@ -7,7 +7,6 @@ import (
 
 	s "github.com/ContextLogic/cadence/pkg/fsm/state"
 	"github.com/ContextLogic/cadence/pkg/models"
-	"github.com/ContextLogic/cadence/pkg/temporal"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -27,9 +26,8 @@ type Workflow struct {
 }
 
 func New(raw []byte) (*Workflow, error) {
-	var w Workflow
-	err := json.Unmarshal(raw, &w)
-	if err != nil {
+	w := &Workflow{}
+	if err := json.Unmarshal(raw, &w); err != nil {
 		return nil, err
 	}
 
@@ -41,7 +39,7 @@ func New(raw []byte) (*Workflow, error) {
 		w.TaskStates = append(w.TaskStates, task)
 	}
 
-	return &w, nil
+	return w, nil
 }
 
 func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{}, error) {
@@ -67,7 +65,7 @@ func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{
 	}
 }
 
-func (wf *Workflow) RegisterWorkflow(name string) {
+func (wf *Workflow) RegisterWorkflow(wc worker.Worker) {
 	f := func(ctx workflow.Context, input interface{}) (interface{}, error) {
 		return wf.Execute(
 			workflow.WithActivityOptions(
@@ -81,10 +79,10 @@ func (wf *Workflow) RegisterWorkflow(name string) {
 			input,
 		)
 	}
-	temporal.WorkerClient.RegisterWorkflowWithOptions(f, workflow.RegisterOptions{Name: name})
+	wc.RegisterWorkflowWithOptions(f, workflow.RegisterOptions{Name: wf.Name})
 }
 
-func (wf *Workflow) RegisterActivities(activities models.ActivityMap) {
+func (wf *Workflow) RegisterActivities(activities models.ActivityMap, wc worker.Worker) {
 	for _, task := range wf.TaskStates {
 		a, ok := activities[*task.Resource]
 		if !ok {
@@ -94,12 +92,12 @@ func (wf *Workflow) RegisterActivities(activities models.ActivityMap) {
 			continue
 		}
 		RegisteredActivities[*task.Resource] = nil
-		temporal.WorkerClient.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
+		wc.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
 	}
 }
 
-func (wf *Workflow) RegisterWorker() {
-	go temporal.WorkerClient.Run(worker.InterruptCh())
+func (wf *Workflow) RegisterWorker(wc worker.Worker) {
+	go wc.Run(worker.InterruptCh())
 }
 
 func (wf *Workflow) RegisterTaskHandlers(activities models.ActivityMap) {
