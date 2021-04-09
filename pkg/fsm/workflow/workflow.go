@@ -38,7 +38,6 @@ func New(raw []byte) (*Workflow, error) {
 
 func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{}, error) {
 	n := &wf.StartAt
-	println("Start at:", n)
 	for {
 		s, ok := wf.States[*n]
 		if !ok {
