@@ -31,24 +31,17 @@ func New(raw []byte) (*Workflow, error) {
 		return nil, err
 	}
 
-	for _, state := range w.States {
-		task, ok := state.(*s.TaskState)
-		if !ok {
-			continue
-		}
-		w.TaskStates = append(w.TaskStates, task)
-	}
-
+	var tasks = s.TasksFromStates(w.States)
+	w.TaskStates = append(w.TaskStates, tasks...)
 	return w, nil
 }
 
 func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{}, error) {
 	n := &wf.StartAt
-
 	for {
 		s, ok := wf.States[*n]
 		if !ok {
-			return nil, fmt.Errorf("next state invalid (%v)", *n)
+			return nil, fmt.Errorf("next state invalid in workflow (%v)", *n)
 		}
 
 		output, next, err := s.Execute(ctx, input)
