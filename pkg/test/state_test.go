@@ -3,10 +3,11 @@ package test
 import (
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
-
 	"go.temporal.io/sdk/testsuite"
+
+	st "github.com/ContextLogic/cadence/pkg/fsm/state"
+	"github.com/sirupsen/logrus"
 )
 
 var logger = logrus.New()
@@ -27,4 +28,19 @@ func (s *UnitTestSuite) AfterTest(suiteName, testName string) {
 
 func TestUnitTestSuite(t *testing.T) {
 	suite.Run(t, new(UnitTestSuite))
+}
+
+var succeedMachine = []byte(`
+ {
+			"Type": "Succeed"
+		}
+
+`)
+
+func (s *UnitTestSuite) Test_Workflow_Succeed_State() {
+	state, _ := st.NewSucceedState("test", succeedMachine)
+	exampleInput := map[string]interface{}{"test": "example_input"}
+	output, _, _ := state.Execute(nil, exampleInput)
+	converted := output.(map[string]interface{})
+	s.Equal("example_input", converted["test"])
 }

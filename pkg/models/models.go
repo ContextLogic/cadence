@@ -25,6 +25,7 @@ const (
 	Wait     StateType = "Wait"
 	Pass     StateType = "Pass"
 	Parallel StateType = "Parallel"
+	Map      StateType = "Map"
 )
 
 type (

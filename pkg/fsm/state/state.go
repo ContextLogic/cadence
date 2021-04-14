@@ -61,6 +61,12 @@ func (s *States) UnmarshalJSON(b []byte) error {
 				return err
 			}
 			(*states)[*state.GetName()] = state
+		case models.Map:
+			state, err := NewMapState(name, *r)
+			if err != nil {
+				return err
+			}
+			(*states)[*state.GetName()] = state
 		case models.Succeed:
 			state, err := NewSucceedState(name, *r)
 			if err != nil {
@@ -430,6 +436,12 @@ func TasksFromStates(states States) []*TaskState {
 				continue
 			}
 			tasks = append(tasks, task)
+		case *MapState:
+			mapState, ok := state.(*MapState)
+			if !ok {
+				continue
+			}
+			tasks = append(tasks, mapState.Iterator.Tasks()...)
 		case *ParallelState:
 			parallelState, ok := state.(*ParallelState)
 			if !ok {

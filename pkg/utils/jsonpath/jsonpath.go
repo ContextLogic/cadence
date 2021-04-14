@@ -224,6 +224,9 @@ func (path *Path) Set(input interface{}, value interface{}) (output interface{},
 		case []interface{}:
 			output = value.([]interface{})
 			return output, nil
+		case string:
+			output = value.(string)
+			return output, nil
 		default:
 			return nil, fmt.Errorf("Cannot Set value %q type %q in root JSON path $", value, reflect.TypeOf(value))
 		}

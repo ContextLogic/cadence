@@ -19,88 +19,112 @@
       "Name": "example:workflow:ExampleWorkflow2",
       "StartAt": "ChoiceState",
       "States": {
-        "ChoiceState": {
-        "Type" : "Choice",
-        "Choices": [
-          {
-          "Variable": "$.foo",
-          "NumericEquals": 1,
-          "Next": "State1"
-          },
-          {
-          "Variable": "$.foo",
-          "NumericEquals": 2,
-          "Next": "State2"
-          },
-          {
-          "Variable": "$.foo",
-          "NumericEquals": 3,
-          "Next": "Pass_append"
-          },
-          {
-          "Variable": "$.foo",
-          "NumericEquals": 4,
-          "Next": "ParallelExecution"
-          }
-        ],
-        "Default": "DefaultState"
+            "ChoiceState": {
+            "Type" : "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.foo",
+                    "NumericEquals": 1,
+                    "Next": "State1"
+                },
+                {
+                    "Variable": "$.foo",
+                    "NumericEquals": 2,
+                    "Next": "State2"
+                },
+                {
+                    "Variable": "$.foo",
+                    "NumericEquals": 3,
+                    "Next": "Pass_append"
+                },
+                {
+                    "Variable": "$.foo",
+                    "NumericEquals": 4,
+                    "Next": "ParallelExecution"
+                }
+            ],
+            "Default": "DefaultState"
         },
         "State1": {
-        "Type": "Task",
-        "Resource": "example:activity:Activity1",
-        "Next": "SuccessState"
-        },
-        "State2": {
-        "Type": "Task",
-        "Resource": "example:activity:Activity2",
-        "Next": "SuccessState"
-        },
-        "Pass_append": {
-        "Type": "Pass",
-        "Result": {
-          "PassAppend": "dummy pass append"
-        },
-        "ResultPath": "$.PassAppend",
-        "Next": "Wait_ten_seconds"
-        },
-        "Wait_ten_seconds" : {
-        "Type" : "Wait",
-        "Seconds" : 2,
-        "Next": "SuccessState"
-        },
-        "ParallelExecution": {
-        "Type": "Parallel",
-        "Branches": [
-          {
-          "StartAt": "Activity1",
-          "States": {
-            "Activity1": {
             "Type": "Task",
             "Resource": "example:activity:Activity1",
-            "End": true
-            }
-          }
-          },
-          {
-          "StartAt": "Activity2",
-          "States": {
-            "Activity2": {
+            "Next": "SuccessState"
+        },
+        "State2": {
             "Type": "Task",
             "Resource": "example:activity:Activity2",
-            "End": true
-            }
-          }
-          }
-        ],
-        "Next": "SuccessState"
+            "Next": "SuccessState"
+        },
+        "Pass_append": {
+            "Type": "Pass",
+            "Result": {
+                "PassAppend": "dummy pass append"
+            },
+            "ResultPath": "$.PassAppend",
+            "Next": "Wait_ten_seconds"
+        },
+        "Wait_ten_seconds" : {
+            "Type" : "Wait",
+            "Seconds" : 2,
+            "Next": "SuccessState"
+        },
+        "ParallelExecution": {
+            "Type": "Parallel",
+            "Branches": [
+              {
+                  "StartAt": "Activity1",
+                  "States": {
+                      "Activity1": {
+                      "Type": "Task",
+                      "Resource": "example:activity:Activity1",
+                      "End": true
+                      }
+                  }
+              },
+              {
+                  "StartAt": "Activity2",
+                  "States": {
+                      "Activity2": {
+                      "Type": "Task",
+                      "Resource": "example:activity:Activity2",
+                      "End": true
+                      }
+                  }
+              }
+            ],
+            "Next": "SuccessState"
         },
         "FailState": {
-        "Type": "Fail",
-        "Cause": "No Matches!"
+            "Type": "Fail",
+            "Cause": "No Matches!"
         },
         "SuccessState": {
-        "Type": "Succeed"
+            "Type": "Succeed"
         }
       }
+    },
+    { 
+        "Name": "example:workflow:ExampleWorkflow3",
+        "StartAt": "MapExecution",
+        "States": {
+            "MapExecution": {
+                "Type": "Map",
+                "MaxConcurrency": 2,
+                "Iterator": {
+                    "StartAt": "Activity3",
+                    "States": {
+                        "Activity3": {
+                        "Type": "Task",
+                        "Resource": "example:activity:Activity3",
+                        "End": true
+                        }
+                    }
+                },
+                "Next": "SuccessState"
+            },
+            "SuccessState": {
+            "Type": "Succeed"
+            }
+        }
     }
 ]
