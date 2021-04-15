@@ -81,15 +81,6 @@ func (s *MapState) process(ctx workflow.Context, input interface{}) (interface{}
 	return interface{}(resp), s.NextState(s.Next, s.End), nil
 }
 
-func executeIteratorAsync(p *MapState, b Iterator, ctx workflow.Context, input interface{}) workflow.Future {
-	future, settable := workflow.NewFuture(ctx)
-	workflow.Go(ctx, func(ctx workflow.Context) {
-		output, _, err := b.Execute(ctx, *p, input)
-		settable.Set(output, err)
-	})
-	return future
-}
-
 func (s *MapState) Execute(ctx workflow.Context, input interface{}) (interface{}, *string, error) {
 	f := ProcessResult(s.ResultPath, s.process)
 	f = ProcessParams(s.Parameters, f)
