@@ -220,30 +220,29 @@ var taskMachine = []byte(`
 }
 `)
 
-func Activity1(ctx context.Context, input interface{}) (interface{}, error) {
+func Activity1(ctx context.Context, input map[string]interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
 
 	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity executed")
-	converted := input.(map[string]interface{})
-	if val, ok := converted["first"]; ok {
-		converted["first"] = val.(string) + activityName
+
+	if val, ok := input["first"]; ok {
+		input["first"] = val.(string) + activityName
 	}
-	return converted, nil
+	return input, nil
 }
 
-func Activity2(ctx context.Context, input interface{}) (interface{}, error) {
+func Activity2(ctx context.Context, input map[string]interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
 
 	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity executed")
-	converted := input.(map[string]interface{})
-	if val, ok := converted["first"]; ok {
-		converted["first"] = val.(string) + activityName
+	if val, ok := input["first"]; ok {
+		input["first"] = val.(string) + activityName
 	}
-	return converted, nil
+	return input, nil
 }
 func Activity3(ctx context.Context, input interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
@@ -362,7 +361,7 @@ func (s *UnitTestSuite) Test_Parallel_Workflow() {
 
 func (s *UnitTestSuite) Test_Task_Workflow() {
 	w := &wf.Workflow{}
-	activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
+	activityMap := map[string]func(context.Context, map[string]interface{}) (interface{}, error){
 		"example:activity:Activity1": Activity1,
 		"example:activity:Activity2": Activity2,
 	}
