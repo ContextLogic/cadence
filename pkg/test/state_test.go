@@ -244,7 +244,7 @@ func Activity2(ctx context.Context, input map[string]interface{}) (interface{}, 
 	}
 	return input, nil
 }
-func Activity3(ctx context.Context, input interface{}) (interface{}, error) {
+func Activity3(ctx context.Context, input map[string]interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
@@ -401,11 +401,11 @@ func (s *UnitTestSuite) Test_Task_Workflow() {
 
 func (s *UnitTestSuite) Test_Map_Workflow() {
 	w := &wf.Workflow{}
-	activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
+	activityMap := map[string]func(context.Context, map[string]interface{}) (interface{}, error){
 		"example:activity:Activity3": Activity3,
 	}
 
-	input := map[string]interface{}{"first": "hello", "second": "hello again"}
+	input := map[string]interface{}{"first": map[string]interface{}{"1": "hello1", "2": "hello2"}, "second": map[string]interface{}{"3": "hello3", "4": "hello4"}}
 	if err := json.Unmarshal(mapMachine, &w); err == nil {
 		w.TaskStates = append(w.TaskStates, st.TasksFromStates(w.States)...)
 		w.RegisterTaskHandlers(activityMap)
