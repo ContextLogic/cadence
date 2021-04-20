@@ -49,5 +49,5 @@ type (
 
 	TaskHandler func(workflow.Context, string, interface{}) (interface{}, error)
 
-	ActivityMap map[string]func(ctx context.Context, input interface{}) (interface{}, error)
+	ActivityMap map[string]func(ctx context.Context, input map[string]interface{}) (interface{}, error)
 )

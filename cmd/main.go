@@ -61,7 +61,7 @@ func LoadWorkflows(path string) []*workflow.Workflow {
 	return workflows
 }
 
-func Activity1(ctx context.Context, input interface{}) (interface{}, error) {
+func Activity1(ctx context.Context, input map[string]interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
@@ -71,7 +71,7 @@ func Activity1(ctx context.Context, input interface{}) (interface{}, error) {
 	return input, nil
 }
 
-func Activity2(ctx context.Context, input interface{}) (interface{}, error) {
+func Activity2(ctx context.Context, input map[string]interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
@@ -99,7 +99,7 @@ func RunDSLBasedWorkflows() {
 	}
 	wfs := LoadWorkflows("./cmd/dsl_based/workflows.json")
 	for idx, wf := range wfs {
-		activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
+		activityMap := map[string]func(context.Context, map[string]interface{}) (interface{}, error){
 			"example:activity:Activity1": Activity1,
 			"example:activity:Activity2": Activity2,
 		}
