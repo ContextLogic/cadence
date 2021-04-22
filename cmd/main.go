@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	dummy "github.com/ContextLogic/cadence/cmd/code_based"
-	"github.com/ContextLogic/cadence/cmd/code_based/models"
 	client "github.com/ContextLogic/cadence/pkg"
 	"github.com/ContextLogic/cadence/pkg/fsm/workflow"
 	"github.com/ContextLogic/cadence/pkg/options"
@@ -92,19 +90,19 @@ func CreateClient(queue string) (client.Client, error) {
 	})
 }
 
-func RunDSLBasedWorkflows() {
+func RunWorkflows() {
 	c, err := CreateClient("dsl")
 	if err != nil {
 		panic(err)
 	}
-	wfs := LoadWorkflows("./cmd/dsl_based/workflows.json")
+	wfs := LoadWorkflows("./cmd/workflows.json")
 	for idx, wf := range wfs {
 		activityMap := map[string]func(context.Context, map[string]interface{}) (interface{}, error){
 			"example:activity:Activity1": Activity1,
 			"example:activity:Activity2": Activity2,
 		}
 
-		c.RegisterDSLBased(wf, activityMap)
+		c.Register(wf, activityMap)
 		instance, err := c.ExecuteWorkflow(
 			context.Background(),
 			sdk.StartWorkflowOptions{
@@ -133,49 +131,6 @@ func RunDSLBasedWorkflows() {
 	}
 }
 
-func RunCodeBasedWorkflows() {
-	name := "example:workflow:CodeExampleWorkflow"
-	c, err := CreateClient("code")
-	if err != nil {
-		panic(err)
-	}
-
-	if err != nil {
-		panic(err)
-	}
-	d := dummy.NewDummyWorkflow()
-	c.RegisterCodeBased(
-		name,
-		d.DummyWorkflow,
-		[]interface{}{
-			d.Activities.DummyCreateOrder,
-			d.Activities.DummyApprovePayment,
-			d.Activities.DummyDeclineOrder,
-		},
-	)
-
-	order := models.Order{ProductID: "toy", CustomerID: "lshu", ShippingAddress: "1 ave"}
-	instance, err := c.ExecuteWorkflow(
-		context.Background(),
-		sdk.StartWorkflowOptions{
-			ID:        strings.Join([]string{namespace, strconv.Itoa(int(time.Now().Unix()))}, "_"),
-			TaskQueue: strings.Join([]string{taskqueue_prefix, "code"}, "_"),
-		},
-		name,
-		order,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	response := &models.OrderResponse{}
-	err = instance.Get(context.Background(), &response)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func main() {
-	RunDSLBasedWorkflows()
-	RunCodeBasedWorkflows()
+	RunWorkflows()
 }
