@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -11,19 +12,17 @@ import (
 
 	client "github.com/ContextLogic/cadence/pkg"
 	"github.com/ContextLogic/cadence/pkg/fsm/workflow"
-	"github.com/ContextLogic/cadence/pkg/options"
 	"github.com/sirupsen/logrus"
 	"go.temporal.io/sdk/activity"
-	sdk "go.temporal.io/sdk/client"
+	temporal "go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
 
 var logger = logrus.New()
 
 const (
-	hostport         = "temporal-fe-dev.service.consul:7233"
-	namespace        = "cadence_lib"
-	taskqueue_prefix = "TASK_QUEUE_cadence_lib"
+	hostport  = "temporal-fe-dev.service.consul:7233"
+	namespace = "cadence_lib"
 )
 
 func init() {
@@ -49,7 +48,7 @@ func LoadWorkflows(path string) []*workflow.Workflow {
 		if err != nil {
 			panic(err)
 		}
-		w, err := workflow.New(bytes)
+		w, err := workflow.New(bytes, "example")
 		if err != nil {
 			panic(err)
 		}
@@ -79,35 +78,38 @@ func Activity2(ctx context.Context, input map[string]interface{}) (interface{}, 
 	return input, nil
 }
 
-func CreateClient(queue string) (client.Client, error) {
-	return client.New(options.Options{
-		ClientOptions: sdk.Options{
+func RunWorkflows() {
+	c, err := client.New(
+		temporal.Options{
 			HostPort:  hostport,
 			Namespace: namespace,
 		},
-		WorkerOptions: worker.Options{}, // use temporal's default value
-		TaskQueue:     strings.Join([]string{taskqueue_prefix, queue}, "_"),
-	})
-}
-
-func RunWorkflows() {
-	c, err := CreateClient("dsl")
+		map[string]worker.Options{
+			"example": worker.Options{},
+		},
+	)
 	if err != nil {
 		panic(err)
 	}
+
 	wfs := LoadWorkflows("./cmd/workflows.json")
-	for idx, wf := range wfs {
-		activityMap := map[string]func(context.Context, map[string]interface{}) (interface{}, error){
-			"example:activity:Activity1": Activity1,
-			"example:activity:Activity2": Activity2,
+	activityMap := map[string]func(context.Context, map[string]interface{}) (interface{}, error){
+		"example:activity:Activity1": Activity1,
+		"example:activity:Activity2": Activity2,
+	}
+	for _, wf := range wfs {
+		logger.Info(fmt.Sprintf("register workflow: %s", wf.Name))
+		err := c.Register(wf, activityMap)
+		if err != nil {
+			panic(err)
 		}
 
-		c.Register(wf, activityMap)
+		logger.Info(fmt.Sprintf("run workflow: %s", wf.Name))
 		instance, err := c.ExecuteWorkflow(
 			context.Background(),
-			sdk.StartWorkflowOptions{
+			temporal.StartWorkflowOptions{
 				ID:        strings.Join([]string{namespace, strconv.Itoa(int(time.Now().Unix()))}, "_"),
-				TaskQueue: strings.Join([]string{taskqueue_prefix, "dsl"}, "_"),
+				TaskQueue: "example",
 			},
 			wf.Name,
 			map[string]interface{}{
@@ -118,16 +120,12 @@ func RunWorkflows() {
 			panic(err)
 		}
 
-		if idx == 0 {
-			response := map[string]interface{}{}
-			err = instance.Get(context.Background(), &response)
-		} else {
-			response := []map[string]interface{}{}
-			err = instance.Get(context.Background(), &response)
-		}
+		var response interface{}
+		err = instance.Get(context.Background(), &response)
 		if err != nil {
 			panic(err)
 		}
+		logger.WithFields(logrus.Fields{"wf": wf.Name, "result": response}).Info("workflow result")
 	}
 }
 

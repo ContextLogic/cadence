@@ -23,10 +23,11 @@ type Workflow struct {
 	TimeoutSeconds int32    `json:"TimeoutSeconds"`
 
 	TaskStates []*s.TaskState `json:"-"`
+	Queue      string         `json:"-"`
 }
 
-func New(raw []byte) (*Workflow, error) {
-	w := &Workflow{}
+func New(raw []byte, queue string) (*Workflow, error) {
+	w := &Workflow{Queue: queue}
 	if err := json.Unmarshal(raw, &w); err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func (wf *Workflow) Execute(ctx workflow.Context, input interface{}) (interface{
 	}
 }
 
-func (wf *Workflow) RegisterWorkflow(wc worker.Worker) {
+func (wf *Workflow) RegisterWorkflow(wk worker.Worker) {
 	f := func(ctx workflow.Context, input interface{}) (interface{}, error) {
 		return wf.Execute(
 			workflow.WithActivityOptions(
@@ -72,10 +73,10 @@ func (wf *Workflow) RegisterWorkflow(wc worker.Worker) {
 			input,
 		)
 	}
-	wc.RegisterWorkflowWithOptions(f, workflow.RegisterOptions{Name: wf.Name})
+	wk.RegisterWorkflowWithOptions(f, workflow.RegisterOptions{Name: wf.Name})
 }
 
-func (wf *Workflow) RegisterActivities(activities models.ActivityMap, wc worker.Worker) {
+func (wf *Workflow) RegisterActivities(activities models.ActivityMap, wk worker.Worker) {
 	for _, task := range wf.TaskStates {
 		a, ok := activities[*task.Resource]
 		if !ok {
@@ -85,7 +86,7 @@ func (wf *Workflow) RegisterActivities(activities models.ActivityMap, wc worker.
 			continue
 		}
 		RegisteredActivities[*task.Resource] = nil
-		wc.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
+		wk.RegisterActivityWithOptions(a, activity.RegisterOptions{Name: *task.Resource})
 	}
 }
 
