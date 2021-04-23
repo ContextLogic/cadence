@@ -16,6 +16,7 @@ var RegisteredActivities = make(map[string]*struct{})
 
 type Workflow struct {
 	Name           string   `json:"Name"`
+	Queue          string   `json:"Queue"`
 	States         s.States `json:"States"`
 	StartAt        string   `json:"StartAt"`
 	Comment        string   `json:"Comment"`
@@ -23,7 +24,6 @@ type Workflow struct {
 	TimeoutSeconds int32    `json:"TimeoutSeconds"`
 
 	TaskStates []*s.TaskState `json:"-"`
-	Queue      string         `json:"-"`
 }
 
 func New(raw []byte, queue string) (*Workflow, error) {

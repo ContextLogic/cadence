@@ -28,10 +28,17 @@ const (
 	Map      StateType = "Map"
 )
 
+const (
+	WorkerInitializing WorkerStatus = "initializing"
+	WorkerRunning      WorkerStatus = "running"
+)
+
 type (
 	Execution func(workflow.Context, interface{}) (interface{}, *string, error)
 
 	StateType string
+
+	WorkerStatus string
 
 	Catcher struct {
 		ErrorEquals []*string      `json:",omitempty"`
