@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 
+	"github.com/ContextLogic/cadence/pkg/fsm/workflow"
 	"github.com/ContextLogic/cadence/pkg/models"
 	"github.com/ContextLogic/cadence/pkg/temporal"
 	resolver "github.com/ContextLogic/cadence/pkg/utils/workflow_resolver"
@@ -12,7 +13,7 @@ import (
 
 type (
 	Client interface {
-		Register(interface{}, map[string]worker.Options, models.ActivityMap) error
+		Register(interface{}, map[string]worker.Options, models.ActivityMap) (map[string]*workflow.Workflow, error)
 		ExecuteWorkflow(context.Context, client.StartWorkflowOptions, interface{}, interface{}) (client.WorkflowRun, error)
 	}
 	clientImpl struct {
@@ -34,10 +35,10 @@ func New(client client.Options) (Client, error) {
 	}, nil
 }
 
-func (c *clientImpl) Register(w interface{}, workers map[string]worker.Options, activities models.ActivityMap) error {
+func (c *clientImpl) Register(w interface{}, workers map[string]worker.Options, activities models.ActivityMap) (map[string]*workflow.Workflow, error) {
 	workflows, err := resolver.ResolveWorkflow(w)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, wf := range workflows {
 		opt, ok := workers[wf.Queue]
@@ -61,7 +62,7 @@ func (c *clientImpl) Register(w interface{}, workers map[string]worker.Options, 
 		}
 	}
 
-	return nil
+	return workflows, nil
 }
 
 func (c *clientImpl) ExecuteWorkflow(ctx context.Context, options client.StartWorkflowOptions, workflow interface{}, input interface{}) (client.WorkflowRun, error) {

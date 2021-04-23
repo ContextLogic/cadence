@@ -9,19 +9,19 @@ import (
 	"github.com/ContextLogic/cadence/pkg/fsm/workflow"
 )
 
-func ResolveWorkflow(i interface{}) ([]*workflow.Workflow, error) {
-	workflows := []*workflow.Workflow{}
+func ResolveWorkflow(i interface{}) (map[string]*workflow.Workflow, error) {
+	workflows := map[string]*workflow.Workflow{}
 	switch i.(type) {
 	case string:
 		return resolveWorkflowFromFile(i.(string))
 	case *workflow.Workflow:
-		workflows = append(workflows, i.(*workflow.Workflow))
+		workflows[i.(*workflow.Workflow).Name] = i.(*workflow.Workflow)
 	case []interface{}:
 		for _, w := range i.([]interface{}) {
 			if _, ok := w.(*workflow.Workflow); !ok {
 				return nil, errors.New("invalid workflow type")
 			}
-			workflows = append(workflows, w.(*workflow.Workflow))
+			workflows[w.(*workflow.Workflow).Name] = w.(*workflow.Workflow)
 		}
 	default:
 		return nil, errors.New("invalide workflow")
@@ -29,7 +29,7 @@ func ResolveWorkflow(i interface{}) ([]*workflow.Workflow, error) {
 	return workflows, nil
 }
 
-func resolveWorkflowFromFile(path string) ([]*workflow.Workflow, error) {
+func resolveWorkflowFromFile(path string) (map[string]*workflow.Workflow, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func resolveWorkflowFromFile(path string) ([]*workflow.Workflow, error) {
 		return nil, err
 	}
 
-	workflows := []*workflow.Workflow{}
+	workflows := map[string]*workflow.Workflow{}
 	for _, v := range m {
 		bytes, err := json.Marshal(v)
 		if err != nil {
@@ -52,7 +52,7 @@ func resolveWorkflowFromFile(path string) ([]*workflow.Workflow, error) {
 		if err != nil {
 			return nil, err
 		}
-		workflows = append(workflows, w)
+		workflows[w.Name] = w
 	}
 
 	return workflows, nil

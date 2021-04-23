@@ -29,11 +29,6 @@ var (
 		"example:activity:Activity1": Activity1,
 		"example:activity:Activity2": Activity2,
 	}
-	wfnames = []string{
-		"example:workflow:ExampleWorkflow1",
-		"example:workflow:ExampleWorkflow2",
-		"example:workflow:ExampleWorkflow3",
-	}
 )
 
 func init() {
@@ -53,20 +48,20 @@ func main() {
 		"example": worker.Options{},
 	}
 	logger.Info("register workflow")
-	err := c.Register(wp, workerOptions, activities)
+	workflows, err := c.Register(wp, workerOptions, activities)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, wfname := range wfnames {
-		logger.Info(fmt.Sprintf("run workflow: %s", wfname))
+	for name, _ := range workflows {
+		logger.Info(fmt.Sprintf("run workflow: %s", name))
 		instance, err := c.ExecuteWorkflow(
 			context.Background(),
 			temporal.StartWorkflowOptions{
 				ID:        strings.Join([]string{namespace, strconv.Itoa(int(time.Now().Unix()))}, "_"),
 				TaskQueue: "example",
 			},
-			wfname,
+			name,
 			map[string]interface{}{"foo": 4},
 		)
 		if err != nil {
@@ -79,7 +74,7 @@ func main() {
 			panic(err)
 		}
 		logger.WithFields(logrus.Fields{
-			"wf":     wfname,
+			"wf":     name,
 			"result": response,
 		}).Info("workflow result")
 	}
