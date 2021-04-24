@@ -220,31 +220,37 @@ var taskMachine = []byte(`
 }
 `)
 
-func Activity1(ctx context.Context, input map[string]interface{}) (interface{}, error) {
+func Activity1(ctx context.Context, input interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
 
 	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity executed")
-
-	if val, ok := input["first"]; ok {
-		input["first"] = val.(string) + activityName
+	switch items := input.(type) {
+	case map[string]interface{}:
+		if val, ok := items["first"]; ok {
+			items["first"] = val.(string) + activityName
+		}
 	}
 	return input, nil
 }
 
-func Activity2(ctx context.Context, input map[string]interface{}) (interface{}, error) {
+func Activity2(ctx context.Context, input interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
 
 	logger.WithFields(logrus.Fields{"input": input, "taskToken": taskToken, "activityName": activityName}).Info("activity executed")
-	if val, ok := input["first"]; ok {
-		input["first"] = val.(string) + activityName
+	switch items := input.(type) {
+	case map[string]interface{}:
+		if val, ok := items["first"]; ok {
+			items["first"] = val.(string) + activityName
+		}
 	}
 	return input, nil
 }
-func Activity3(ctx context.Context, input map[string]interface{}) (interface{}, error) {
+
+func Activity3(ctx context.Context, input interface{}) (interface{}, error) {
 	activityInfo := activity.GetInfo(ctx)
 	taskToken := string(activityInfo.TaskToken)
 	activityName := activityInfo.ActivityType.Name
@@ -253,6 +259,7 @@ func Activity3(ctx context.Context, input map[string]interface{}) (interface{}, 
 
 	return "Updated", nil
 }
+
 func (s *UnitTestSuite) Test_Succeed_State() {
 	w := &wf.Workflow{}
 	input := map[string]interface{}{"test": "example_input"}
@@ -361,7 +368,7 @@ func (s *UnitTestSuite) Test_Parallel_Workflow() {
 
 func (s *UnitTestSuite) Test_Task_Workflow() {
 	w := &wf.Workflow{}
-	activityMap := map[string]func(context.Context, map[string]interface{}) (interface{}, error){
+	activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
 		"example:activity:Activity1": Activity1,
 		"example:activity:Activity2": Activity2,
 	}
@@ -401,11 +408,10 @@ func (s *UnitTestSuite) Test_Task_Workflow() {
 
 func (s *UnitTestSuite) Test_Map_Workflow() {
 	w := &wf.Workflow{}
-	activityMap := map[string]func(context.Context, map[string]interface{}) (interface{}, error){
+	activityMap := map[string]func(context.Context, interface{}) (interface{}, error){
 		"example:activity:Activity3": Activity3,
 	}
-
-	input := map[string]interface{}{"first": map[string]interface{}{"1": "hello1", "2": "hello2"}, "second": map[string]interface{}{"3": "hello3", "4": "hello4"}}
+	input := map[string]interface{}{"first": "hello", "second": "hello again"}
 	if err := json.Unmarshal(mapMachine, &w); err == nil {
 		w.TaskStates = append(w.TaskStates, st.TasksFromStates(w.States)...)
 		w.RegisterTaskHandlers(activityMap)
